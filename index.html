@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rose</title>
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    background: black;
+    overflow: hidden;
+}
+canvas {
+    display: block;
+}
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+
+<script>
+const c = document.getElementById("canvas");
+const ctx = c.getContext("2d");
+
+function resize(){
+    c.width = window.innerWidth;
+    c.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+const cx = c.width / 2;
+const cy = c.height / 2;
+
+const word = "VALESKA";
+let iWord = 0;
+function nextChar(){ return word[iWord++ % word.length]; }
+
+ctx.textAlign = "center";
+ctx.textBaseline = "middle";
+
+// Rose center position
+const roseCx = cx;
+const roseCy = cy - 100;
+
+// =====================
+// HELPER: Fill a petal shape with VALESKA characters
+// =====================
+function fillPetal(baseCx, baseCy, angle, length, maxWidth, numStrokes, rBase, gBase, bBase, rTip, gTip, bTip, fontSize, curveBend) {
+    ctx.font = `bold ${fontSize}px Georgia, serif`;
+    const charsPerStroke = Math.floor(length / (fontSize * 0.55));
+
+    for (let s = 0; s < numStrokes; s++) {
+        const widthFrac = (s / (numStrokes - 1)) - 0.5;
+
+        for (let i = 0; i < charsPerStroke; i++) {
+            const t = i / charsPerStroke;
+
+            // Petal width profile
+            const profile = Math.pow(Math.sin(t * Math.PI), 0.55) * (1 - Math.pow(t, 2.5) * 0.4);
+            if (profile < 0.05) continue;
+
+            const acrossOffset = widthFrac * 2 * profile * maxWidth;
+            const curveOffset = Math.sin(t * Math.PI) * curveBend;
+            const alongX = t * length;
+            const acrossY = acrossOffset + curveOffset;
+
+            const cosA = Math.cos(angle), sinA = Math.sin(angle);
+            const wx = baseCx + cosA * alongX - sinA * acrossY;
+            const wy = baseCy + sinA * alongX + cosA * acrossY;
+
+            const edgeDark = 1 - Math.pow(Math.abs(widthFrac * 2), 1.5) * 0.35;
+            const depthShade = 0.85 + t * 0.15;
+            const shade = edgeDark * depthShade;
+            const r = Math.floor((rBase + (rTip - rBase) * t) * shade);
+            const g = Math.floor((gBase + (gTip - gBase) * t) * shade);
+            const b = Math.floor((bBase + (bTip - bBase) * t) * shade);
+
+            ctx.save();
+            ctx.translate(wx, wy);
+            ctx.rotate(angle + Math.sin(t * Math.PI * 0.8) * 0.25);
+            ctx.globalAlpha = 0.82 + profile * 0.18;
+            ctx.fillStyle = `rgb(${r},${g},${b})`;
+            ctx.fillText(nextChar(), 0, 0);
+            ctx.restore();
+        }
+    }
+}
+
+// =====================
+// SEPALS — green leaf-like shapes behind the bloom
+// =====================
+for (let s = 0; s < 5; s++) {
+    const a = -Math.PI / 2 + (s - 2) * 0.5;
+    const bx = roseCx + Math.cos(a) * 10;
+    const by = roseCy + 60;
+    fillPetal(bx, by, a + 0.15, 55, 12, 5, 30, 90, 30, 50, 140, 55, 8, 8);
+}
+
+// =====================
+// ROSE HEAD — Multiple layers of filled petals
+// =====================
+
+// Layer 1: Outermost petals (5) — large, lighter, drooping outward
+for (let p = 0; p < 5; p++) {
+    const a = (p / 5) * Math.PI * 2 + 0.15;
+    const bx = roseCx + Math.cos(a) * 18;
+    const by = roseCy + Math.sin(a) * 12;
+    const droopAngle = a + Math.sin(a) * 0.15;
+    fillPetal(bx, by, droopAngle, 95, 42, 14,
+        195, 60, 78,   240, 115, 130,   9, 16);
+}
+
+// Layer 2: Second ring (6) — medium, richer color
+for (let p = 0; p < 6; p++) {
+    const a = (p / 6) * Math.PI * 2 + 0.55;
+    const bx = roseCx + Math.cos(a) * 12;
+    const by = roseCy + Math.sin(a) * 8;
+    fillPetal(bx, by, a, 72, 34, 11,
+        170, 30, 52,   220, 68, 88,   9, 13);
+}
+
+// Layer 3: Inner ring (5) — deep red, curling inward
+for (let p = 0; p < 5; p++) {
+    const a = (p / 5) * Math.PI * 2 + 1.1;
+    const bx = roseCx + Math.cos(a) * 6;
+    const by = roseCy + Math.sin(a) * 4;
+    fillPetal(bx, by, a + 0.2, 50, 24, 9,
+        145, 15, 38,   190, 45, 62,   8, 10);
+}
+
+// Layer 4: Innermost petals (4) — tight, darkest
+for (let p = 0; p < 4; p++) {
+    const a = (p / 4) * Math.PI * 2 + 1.8;
+    const bx = roseCx + Math.cos(a) * 3;
+    const by = roseCy + Math.sin(a) * 2;
+    fillPetal(bx, by, a + 0.4, 30, 16, 6,
+        125, 8, 28,   165, 32, 48,   7, 7);
+}
+
+// Center bud — tight spiral of dark VALESKA characters
+ctx.font = "bold 8px Georgia, serif";
+for (let i = 0; i < 90; i++) {
+    const a = i * 0.3;
+    const r = 1.5 + i * 0.2;
+    const px = roseCx + Math.cos(a) * r;
+    const py = roseCy + Math.sin(a) * r * 0.7;
+    ctx.save();
+    ctx.translate(px, py);
+    ctx.rotate(a + 0.5);
+    const shade = 85 + Math.floor((i / 90) * 55);
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = `rgb(${shade},6,18)`;
+    ctx.fillText(nextChar(), 0, 0);
+    ctx.restore();
+}
+
+// =====================
+// STEM — curved, thick, made of VALESKA
+// =====================
+ctx.globalAlpha = 1;
+
+function stemXPos(t) {
+    return Math.sin(t * 2.2) * 18;
+}
+
+const stemTop = roseCy + 68;
+const stemLength = 280;
+
+ctx.font = "bold 10px Georgia, serif";
+for (let i = 0; i < 65; i++) {
+    const t = i / 65;
+    const y = stemTop + t * stemLength;
+    const x = cx + stemXPos(t);
+
+    for (let col = -1; col <= 1; col++) {
+        ctx.save();
+        ctx.translate(x + col * 5, y);
+        ctx.rotate(Math.PI / 2 + Math.sin(t * 2.5) * 0.08);
+        const g = 85 + Math.floor(Math.sin(t * Math.PI) * 50);
+        const darkness = col === 0 ? 1 : 0.82;
+        ctx.fillStyle = `rgb(${Math.floor(30 * darkness)},${Math.floor(g * darkness)},${Math.floor(40 * darkness)})`;
+        ctx.globalAlpha = 0.9;
+        ctx.fillText(nextChar(), 0, 0);
+        ctx.restore();
+    }
+}
+
+// Thorns
+ctx.font = "bold 8px Georgia, serif";
+const thornSpots = [0.2, 0.42, 0.65];
+thornSpots.forEach((t, idx) => {
+    const y = stemTop + t * stemLength;
+    const x = cx + stemXPos(t);
+    const dir = idx % 2 === 0 ? 1 : -1;
+    for (let j = 0; j < 3; j++) {
+        ctx.save();
+        ctx.translate(x + dir * (8 + j * 4), y - j * 3);
+        ctx.rotate(dir * -0.7);
+        ctx.fillStyle = "rgb(45,100,40)";
+        ctx.globalAlpha = 0.85 - j * 0.15;
+        ctx.fillText(nextChar(), 0, 0);
+        ctx.restore();
+    }
+});
+
+// =====================
+// LEAVES — realistic filled shapes made of VALESKA
+// =====================
+function drawLeaf(startX, startY, angle, size) {
+    const numStrokes = 14;
+    const charsPerStroke = Math.floor(size / 5);
+    ctx.font = "bold 9px Georgia, serif";
+
+    for (let s = 0; s < numStrokes; s++) {
+        const widthFrac = (s / (numStrokes - 1)) - 0.5;
+
+        for (let i = 0; i < charsPerStroke; i++) {
+            const t = i / charsPerStroke;
+            const theta = t * Math.PI;
+
+            const profile = Math.pow(Math.sin(theta), 0.7);
+            if (profile < 0.08) continue;
+
+            const serration = Math.sin(t * Math.PI * 7) * 2.5 * Math.abs(widthFrac);
+            const acrossOffset = (widthFrac * 2 * profile * size * 0.35) + serration;
+            const alongX = (t - 0.5) * size;
+
+            const cosA = Math.cos(angle), sinA = Math.sin(angle);
+            const wx = startX + cosA * alongX - sinA * acrossOffset;
+            const wy = startY + sinA * alongX + cosA * acrossOffset;
+
+            const edgeDark = 1 - Math.pow(Math.abs(widthFrac * 2), 2) * 0.3;
+            const g = Math.floor((100 + Math.sin(theta) * 55) * edgeDark);
+
+            ctx.save();
+            ctx.translate(wx, wy);
+            ctx.rotate(angle + Math.sin(t * 4) * 0.15);
+            ctx.globalAlpha = 0.7 + profile * 0.3;
+            ctx.fillStyle = `rgb(${Math.floor(22 * edgeDark)},${g},${Math.floor(38 * edgeDark)})`;
+            ctx.fillText(nextChar(), 0, 0);
+            ctx.restore();
+        }
+    }
+
+    // Leaf vein
+    ctx.font = "bold 7px Georgia, serif";
+    for (let i = 0; i < Math.floor(size / 7); i++) {
+        const t = i / Math.floor(size / 7);
+        const along = (t - 0.5) * size;
+        const cosA = Math.cos(angle), sinA = Math.sin(angle);
+        const wx = startX + cosA * along;
+        const wy = startY + sinA * along;
+        ctx.save();
+        ctx.translate(wx, wy);
+        ctx.rotate(angle);
+        ctx.globalAlpha = 0.5;
+        ctx.fillStyle = "rgb(18,70,28)";
+        ctx.fillText(nextChar(), 0, 0);
+        ctx.restore();
+    }
+}
+
+ctx.globalAlpha = 1;
+
+// Leaf 1 — right side
+const l1t = 0.28;
+const l1x = cx + stemXPos(l1t) + 18;
+const l1y = stemTop + l1t * stemLength;
+drawLeaf(l1x + 40, l1y, 0.35, 95);
+
+// Leaf 2 — left side
+const l2t = 0.48;
+const l2x = cx + stemXPos(l2t) - 18;
+const l2y = stemTop + l2t * stemLength;
+drawLeaf(l2x - 40, l2y, Math.PI - 0.35, 85);
+
+// Leaf 3 — right side smaller
+const l3t = 0.68;
+const l3x = cx + stemXPos(l3t) + 14;
+const l3y = stemTop + l3t * stemLength;
+drawLeaf(l3x + 30, l3y + 5, 0.3, 65);
+
+// =====================
+// NAME — elegant signature
+// =====================
+ctx.globalAlpha = 1;
+ctx.font = "italic 32px Georgia, serif";
+ctx.fillStyle = "#ff6b8a";
+ctx.shadowColor = "rgba(255,80,120,0.45)";
+ctx.shadowBlur = 18;
+ctx.fillText("Valeska", cx, cy + 260);
+ctx.shadowBlur = 0;
+
+</script>
+</body>
+</html>
